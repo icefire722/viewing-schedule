@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>看房時段協調表</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap');
+
+  :root{
+    --blueprint-deep:#0B2238;
+    --blueprint:#15324C;
+    --paper:#FBF9F4;
+    --paper-alt:#F1EEE5;
+    --line:#E2DFD4;
+    --ink:#1C2B33;
+    --ink-soft:#5C6B72;
+    --conflict:#D6493F;
+    --conflict-bg:#FCE9E7;
+    --ok:#2E8B7E;
+    --ok-bg:#E6F2EF;
+    --gold:#C99A3B;
+    --busy:#8C95A3;
+    --font-display:'Space Grotesk',sans-serif;
+    --font-body:'Inter',system-ui,-apple-system,sans-serif;
+    --font-mono:'IBM Plex Mono',monospace;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--font-body);-webkit-text-size-adjust:100%;}
+  .app-shell{max-width:760px;margin:0 auto;min-height:100vh;background:var(--paper);}
+
+  .header{
+    background-color:var(--blueprint-deep);
+    background-image:
+      repeating-linear-gradient(0deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 22px),
+      repeating-linear-gradient(90deg, rgba(255,255,255,0.06) 0 1px, transparent 1px 22px);
+    padding:26px 20px 20px;color:#fff;
+  }
+  .header-title{font-family:var(--font-display);font-size:23px;font-weight:700;letter-spacing:.3px;margin:0;}
+  .header-sub{font-family:var(--font-body);font-size:13px;color:#BFD3E3;margin-top:6px;line-height:1.5;}
+  .identity-bar{display:flex;justify-content:space-between;align-items:center;margin-top:16px;font-family:var(--font-mono);font-size:12px;color:#CFE0EC;}
+  .identity-bar button{background:none;border:1px solid rgba(255,255,255,0.3);color:#fff;font-family:var(--font-mono);font-size:11px;padding:5px 10px;border-radius:4px;cursor:pointer;}
+  .identity-bar button:hover{background:rgba(255,255,255,0.1);}
+  .header-stats{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;}
+  .stat-chip{font-family:var(--font-mono);font-size:12px;padding:5px 10px;border-radius:4px;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.2);color:#E7EEF3;}
+  .stat-chip.warn{color:#FFD9D5;border-color:rgba(214,73,63,0.55);background:rgba(214,73,63,0.22);}
+  .stat-chip.ok{color:#CFEDE5;border-color:rgba(46,139,126,0.5);background:rgba(46,139,126,0.18);}
+
+  .tabs{display:flex;background:var(--paper-alt);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5;}
+  .tab-btn{flex:1;padding:14px 6px;background:none;border:none;font-family:var(--font-display);font-weight:600;font-size:13px;color:var(--ink-soft);cursor:pointer;border-bottom:3px solid transparent;}
+  .tab-btn.active{color:var(--ink);border-bottom-color:var(--gold);}
+
+  .panel{padding:20px 18px 60px;display:none;}
+  .panel.active{display:block;}
+
+  .field{margin-bottom:16px;display:flex;flex-direction:column;gap:6px;}
+  .field label{font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-soft);}
+  .field input, .field textarea{font-family:var(--font-body);font-size:16px;padding:11px 12px;border:1px solid var(--line);border-radius:6px;background:#fff;color:var(--ink);width:100%;}
+  .field input:focus, .field textarea:focus{outline:2px solid var(--blueprint);outline-offset:0;}
+  .row-2{display:flex;gap:12px;}
+  .row-2 .field{flex:1;}
+  @media (max-width:480px){ .row-2{flex-direction:column;gap:16px;} .header-title{font-size:20px;} }
+
+  .btn{padding:13px;background:var(--blueprint-deep);color:#fff;border:none;border-radius:6px;font-family:var(--font-display);font-weight:600;font-size:15px;letter-spacing:.2px;cursor:pointer;width:100%;}
+  .btn:hover{background:var(--blueprint);}
+  .btn:disabled{opacity:.5;cursor:default;}
+  .btn-outline{background:none;border:1px solid var(--line);color:var(--ink);}
+  .btn-outline:hover{border-color:var(--blueprint);color:var(--blueprint);}
+  .btn-small{width:auto;padding:8px 14px;font-size:13px;}
+  .form-error{color:var(--conflict);font-size:13px;margin-top:-4px;margin-bottom:14px;line-height:1.5;}
+  .form-hint{font-size:12px;color:var(--ink-soft);margin-top:-6px;margin-bottom:16px;}
+
+  /* gate */
+  .gate-wrap{padding:24px 18px 60px;display:flex;flex-direction:column;gap:16px;}
+  .role-card{border:1px solid var(--line);border-radius:8px;padding:18px;background:#fff;}
+  .role-card h2{font-family:var(--font-display);font-size:16px;margin:0 0 12px;}
+  .role-card .field{margin-bottom:12px;}
+
+  .overview-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;gap:10px;flex-wrap:wrap;}
+  .date-group{margin-bottom:26px;}
+  .date-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;border-bottom:1px solid var(--line);padding-bottom:6px;}
+  .date-label{font-family:var(--font-display);font-weight:700;font-size:16px;}
+  .date-count{font-family:var(--font-mono);font-size:12px;color:var(--ink-soft);}
+
+  .timeline{position:relative;background:#fff;border:1px solid var(--line);border-radius:6px;padding:10px 10px 6px;margin-bottom:10px;}
+  .ruler-ticks{display:flex;justify-content:space-between;font-family:var(--font-mono);font-size:10px;color:var(--ink-soft);margin-bottom:6px;}
+  .timeline-row{position:relative;height:32px;margin-bottom:5px;}
+  .slot-bar{position:absolute;top:1px;bottom:1px;border-radius:5px;font-family:var(--font-mono);font-size:11px;color:#fff;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);}
+  .slot-bar.conflict{outline:2px dashed var(--conflict);outline-offset:1px;}
+  .busy-bar{position:absolute;top:1px;bottom:1px;border-radius:5px;font-family:var(--font-mono);font-size:11px;color:#fff;display:flex;align-items:center;padding:0 6px;overflow:hidden;white-space:nowrap;background:var(--busy);background-image:repeating-linear-gradient(45deg, rgba(255,255,255,0.18) 0 6px, transparent 6px 12px);}
+
+  .slot-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+  .slot-item:last-child{border-bottom:none;}
+  .slot-dot{width:10px;height:10px;border-radius:50%;margin-top:5px;flex-shrink:0;}
+  .slot-info{flex:1;min-width:0;}
+  .slot-time{font-family:var(--font-mono);font-weight:600;font-size:13px;}
+  .slot-agent{font-family:var(--font-body);font-weight:600;font-size:14px;margin-top:1px;}
+  .slot-agency{font-size:12px;color:var(--ink-soft);}
+  .slot-note{font-size:12px;color:var(--ink-soft);margin-top:3px;}
+  .conflict-tag{display:inline-block;font-family:var(--font-mono);font-size:11px;background:var(--conflict-bg);color:var(--conflict);padding:2px 6px;border-radius:4px;margin-left:6px;}
+  .delete-btn{background:none;border:none;color:var(--ink-soft);cursor:pointer;font-size:12px;font-family:var(--font-body);padding:4px;}
+  .delete-btn:hover{color:var(--conflict);}
+  .confirm-row{display:flex;gap:10px;align-items:center;font-size:12px;}
+  .confirm-yes{color:var(--conflict);font-weight:600;cursor:pointer;}
+  .confirm-no{color:var(--ink-soft);cursor:pointer;}
+
+  .empty-state{text-align:center;padding:50px 20px;color:var(--ink-soft);font-size:14px;line-height:1.7;}
+  .loading-state{text-align:center;padding:50px 20px;color:var(--ink-soft);font-family:var(--font-mono);font-size:13px;}
+  .note-box{background:var(--paper-alt);border:1px solid var(--line);border-radius:6px;padding:12px;font-size:13px;color:var(--ink-soft);line-height:1.6;margin-bottom:16px;}
+  .note-box b{color:var(--ink);}
+
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(10px);background:var(--blueprint-deep);color:#fff;padding:10px 18px;border-radius:6px;font-size:13px;opacity:0;transition:opacity .25s, transform .25s;pointer-events:none;z-index:50;max-width:88%;text-align:center;}
+  .toast.error{background:var(--conflict);}
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+  .checkbox-row{display:flex;align-items:center;gap:8px;margin-bottom:16px;}
+  .checkbox-row label{font-size:13px;color:var(--ink);}
+</style>
+</head>
+<body>
+<div class="app-shell" id="appShell"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+  // ===== 設定區：管理者通關碼請直接改這裡 =====
+  const ADMIN_PASSCODE = 'davidadmin';
+  // ============================================
+
+  const BUFFER_MINUTES = 60;
+  const KEY_BUSY = 'busy-blocks';
+  const KEY_SLOT_PREFIX = 'slots:';
+  const KEY_SETTINGS = 'admin-settings';
+  const AGENT_PALETTE = ['#2E86AB','#C97B3D','#6B5B95','#3E8E7E','#B5495B','#4C6E91','#0F8B8D','#9C6644'];
+  const WEEKDAYS = ['日','一','二','三','四','五','六'];
+
+  let identity = null; // {role:'agent', agentName, agency, agentKey, storageKey} | {role:'admin'}
+  let activeTab = '';
+  let deleteConfirmId = null;
+  let pollHandle = null;
+  let notifiedConflictKeys = new Set();
+
+  // ---------- generic helpers ----------
+  function toMinutes(t){ const [h,m] = t.split(':').map(Number); return h*60+m; }
+  function genId(){ return 's_' + Date.now() + '_' + Math.random().toString(36).slice(2,7); }
+  function slugify(s){ return String(s).trim().replace(/[\s\/\\'"]+/g,'_').slice(0,60); }
+  function escapeHtml(str){ return String(str).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function formatDateLabel(dateStr){ const d = new Date(dateStr+'T00:00:00'); return (d.getMonth()+1)+'/'+d.getDate()+' (週'+WEEKDAYS[d.getDay()]+')'; }
+  function agentColor(key){ let h=0; for(const ch of key){ h=(h*31+ch.charCodeAt(0))%99991; } return AGENT_PALETTE[h % AGENT_PALETTE.length]; }
+
+  function hasConflict(dateA, startA, endA, dateB, startB, endB){
+    if (dateA !== dateB) return false;
+    const aS=toMinutes(startA), aE=toMinutes(endA), bS=toMinutes(startB), bE=toMinutes(endB);
+    return aS < bE + BUFFER_MINUTES && bS < aE + BUFFER_MINUTES;
+  }
+
+  function showToast(msg, type){
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.className = 'toast show' + (type==='error' ? ' error' : '');
+    clearTimeout(t._timer);
+    t._timer = setTimeout(()=>{ t.className='toast'; }, 2400);
+  }
+
+  async function getJSON(key, shared, fallback){
+    try{
+      const res = await window.storage.get(key, shared);
+      return res && res.value ? JSON.parse(res.value) : fallback;
+    }catch(e){ return fallback; }
+  }
+  async function setJSON(key, value, shared){
+    try{
+      const result = await window.storage.set(key, JSON.stringify(value), shared);
+      if (!result){ showToast('儲存失敗，請重試', 'error'); return false; }
+      return true;
+    }catch(e){ showToast('儲存失敗，請重試', 'error'); return false; }
+  }
+
+  // ===================================================================
+  // ROOT RENDER
+  // ===================================================================
+  function render(){
+    const root = document.getElementById('appShell');
+    if (!identity){ root.innerHTML = gateHtml(); attachGateHandlers(); return; }
+    if (identity.role === 'agent'){ root.innerHTML = agentShellHtml(); attachAgentHandlers(); setAgentTab('submit'); }
+    else { root.innerHTML = adminShellHtml(); attachAdminHandlers(); setAdminTab('overview'); }
+  }
+
+  function switchIdentity(){
+    identity = null;
+    if (pollHandle){ clearInterval(pollHandle); pollHandle = null; }
+    render();
+  }
+
+  // ===================================================================
+  // GATE (身份選擇)
+  // ===================================================================
+  function gateHtml(){
+    return `
+      <div class="header">
+        <h1 class="header-title">看房時段協調表</h1>
+        <div class="header-sub">請先選擇您的身份，再進入系統。</div>
+      </div>
+      <div class="gate-wrap">
+        <div class="role-card">
+          <h2>我是房仲</h2>
+          <div class="field"><label>房仲姓名</label><input type="text" id="gateAgentName" placeholder="例如：王小明"></div>
+          <div class="field"><label>仲介公司</label><input type="text" id="gateAgency" placeholder="例如：信義房屋"></div>
+          <div class="form-error" id="gateAgentError" style="display:none;"></div>
+          <button class="btn" id="gateAgentBtn">進入房仲系統</button>
+        </div>
+        <div class="role-card">
+          <h2>我是管理者</h2>
+          <div class="field"><label>管理者通關碼</label><input type="password" id="gateAdminCode" placeholder="請輸入通關碼"></div>
+          <div class="form-error" id="gateAdminError" style="display:none;"></div>
+          <button class="btn btn-outline" id="gateAdminBtn">進入管理介面</button>
+        </div>
+      </div>`;
+  }
+
+  function attachGateHandlers(){
+    document.getElementById('gateAgentBtn').onclick = () => {
+      const agentName = document.getElementById('gateAgentName').value.trim();
+      const agency = document.getElementById('gateAgency').value.trim();
+      const err = document.getElementById('gateAgentError');
+      if (!agentName || !agency){ err.style.display='block'; err.textContent='請填寫姓名與仲介公司'; return; }
+      err.style.display='none';
+      const agentKey = slugify(agentName) + '_' + slugify(agency);
+      identity = { role:'agent', agentName, agency, agentKey, storageKey: KEY_SLOT_PREFIX + agentKey };
+      render();
+    };
+    document.getElementById('gateAdminBtn').onclick = () => {
+      const code = document.getElementById('gateAdminCode').value;
+      const err = document.getElementById('gateAdminError');
+      if (code !== ADMIN_PASSCODE){ err.style.display='block'; err.textContent='通關碼不正確'; return; }
+      err.style.display='none';
+      identity = { role:'admin' };
+      render();
+    };
+  }
+
+  // ===================================================================
+  // AGENT SHELL
+  // ===================================================================
+  function agentShellHtml(){
+    return `
+      <div class="header">
+        <h1 class="header-title">看房時段協調表</h1>
+        <div class="identity-bar">
+          <span>身份：${escapeHtml(identity.agentName)}（${escapeHtml(identity.agency)}）</span>
+          <button id="switchIdBtn">切換身份</button>
+        </div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn" data-tab="submit">登記時段</button>
+        <button class="tab-btn" data-tab="mine">我的時段</button>
+        <button class="tab-btn" data-tab="avail">空檔總覽</button>
+      </div>
+      <div class="panel" id="panelSubmit"></div>
+      <div class="panel" id="panelMine"></div>
+      <div class="panel" id="panelAvail"></div>`;
+  }
+
+  function attachAgentHandlers(){
+    document.getElementById('switchIdBtn').onclick = switchIdentity;
+    document.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setAgentTab(btn.getAttribute('data-tab')); });
+  }
+
+  function setAgentTab(tab){
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if (tab==='submit'){ document.getElementById('panelSubmit').classList.add('active'); renderAgentSubmitForm(); }
+    if (tab==='mine'){ document.getElementById('panelMine').classList.add('active'); loadMySlots(); }
+    if (tab==='avail'){ document.getElementById('panelAvail').classList.add('active'); loadAvailability(); }
+    if (pollHandle){ clearInterval(pollHandle); }
+    pollHandle = setInterval(() => {
+      if (activeTab==='mine') loadMySlots(true);
+      if (activeTab==='avail') loadAvailability(true);
+    }, 20000);
+  }
+
+  function renderAgentSubmitForm(){
+    document.getElementById('panelSubmit').innerHTML = `
+      <div class="note-box"><b>提醒：</b>每個時段需與其他已登記時段間隔至少 1 小時，無法安排連續看房。備註內容僅管理者看得到，其他房仲不會看到。</div>
+      <div class="field"><label>看房日期</label><input type="date" id="inDate"></div>
+      <div class="row-2">
+        <div class="field"><label>開始時間</label><input type="time" id="inStart"></div>
+        <div class="field"><label>結束時間</label><input type="time" id="inEnd"></div>
+      </div>
+      <div class="field"><label>備註（僅管理者可見）</label><textarea id="inNote" rows="2" placeholder="例如：客戶人數、聯絡方式、特殊需求"></textarea></div>
+      <div class="form-error" id="formError" style="display:none;"></div>
+      <button class="btn" id="submitBtn">新增時段</button>`;
+    document.getElementById('submitBtn').onclick = handleAgentSubmit;
+  }
+
+  function showFormError(msg){
+    const el = document.getElementById('formError');
+    if (!msg){ el.style.display='none'; el.textContent=''; return; }
+    el.style.display='block'; el.textContent = msg;
+  }
+
+  async function handleAgentSubmit(){
+    const date = document.getElementById('inDate').value;
+    const startTime = document.getElementById('inStart').value;
+    const endTime = document.getElementById('inEnd').value;
+    const note = document.getElementById('inNote').value.trim();
+
+    if (!date){ showFormError('請選擇看房日期'); return; }
+    if (!startTime || !endTime){ showFormError('請填寫開始與結束時間'); return; }
+    if (toMinutes(endTime) <= toMinutes(startTime)){ showFormError('結束時間必須晚於開始時間'); return; }
+    showFormError(null);
+
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+
+    const busy = await getJSON(KEY_BUSY, true, []);
+    const blocking = busy.find(b => hasConflict(date,startTime,endTime,b.date,b.startTime,b.endTime));
+    if (blocking){
+      showFormError('該時段與已預訂時段太接近：' + formatDateLabel(blocking.date) + ' ' + blocking.startTime + '–' + blocking.endTime + ' 已被預訂，需間隔至少 1 小時，請選擇其他時段。');
+      btn.disabled = false;
+      return;
+    }
+
+    const id = genId();
+    const fullRecord = { id, agentName: identity.agentName, agency: identity.agency, agentKey: identity.agentKey, date, startTime, endTime, note, createdAt: Date.now() };
+    const busyRecord = { id, date, startTime, endTime };
+
+    const mine = await getJSON(identity.storageKey, true, []);
+    mine.push(fullRecord);
+    const ok1 = await setJSON(identity.storageKey, mine, true);
+
+    busy.push(busyRecord);
+    const ok2 = await setJSON(KEY_BUSY, busy, true);
+
+    btn.disabled = false;
+    if (ok1 && ok2){
+      document.getElementById('inDate').value='';
+      document.getElementById('inStart').value='';
+      document.getElementById('inEnd').value='';
+      document.getElementById('inNote').value='';
+      showToast('已新增時段');
+    }
+  }
+
+  async function loadMySlots(silent){
+    const panel = document.getElementById('panelMine');
+    if (!silent) panel.innerHTML = '<div class="loading-state">載入中...</div>';
+    const mine = await getJSON(identity.storageKey, true, []);
+    renderMySlots(mine.sort((a,b)=> (a.date+a.startTime).localeCompare(b.date+b.startTime)));
+  }
+
+  function renderMySlots(list){
+    const panel = document.getElementById('panelMine');
+    if (list.length === 0){ panel.innerHTML = '<div class="empty-state">您目前尚無已登記的看房時段。</div>'; return; }
+    let html = '';
+    list.forEach(s => {
+      html += '<div class="slot-item"><div class="slot-info">';
+      html += '<div class="slot-time">' + formatDateLabel(s.date) + ' ' + s.startTime + ' – ' + s.endTime + '</div>';
+      if (s.note) html += '<div class="slot-note">' + escapeHtml(s.note) + '</div>';
+      html += '</div><div class="slot-actions">';
+      if (deleteConfirmId === s.id){
+        html += '<div class="confirm-row"><span class="confirm-yes" data-myconfirm-yes="'+s.id+'">確定刪除</span><span class="confirm-no" data-myconfirm-no="'+s.id+'">取消</span></div>';
+      } else {
+        html += '<button class="delete-btn" data-mydelete="'+s.id+'">取消預約</button>';
+      }
+      html += '</div></div>';
+    });
+    panel.innerHTML = html;
+    document.querySelectorAll('[data-mydelete]').forEach(b => b.onclick = () => { deleteConfirmId = b.getAttribute('data-mydelete'); renderMySlots(list); });
+    document.querySelectorAll('[data-myconfirm-no]').forEach(b => b.onclick = () => { deleteConfirmId = null; renderMySlots(list); });
+    document.querySelectorAll('[data-myconfirm-yes]').forEach(b => b.onclick = async () => {
+      const id = b.getAttribute('data-myconfirm-yes');
+      const mine = (await getJSON(identity.storageKey, true, [])).filter(s => s.id !== id);
+      await setJSON(identity.storageKey, mine, true);
+      const busy = (await getJSON(KEY_BUSY, true, [])).filter(s => s.id !== id);
+      await setJSON(KEY_BUSY, busy, true);
+      deleteConfirmId = null;
+      showToast('已取消該時段');
+      loadMySlots();
+    });
+  }
+
+  async function loadAvailability(silent){
+    const panel = document.getElementById('panelAvail');
+    if (!silent) panel.innerHTML = '<div class="loading-state">載入中...</div>';
+    const busy = await getJSON(KEY_BUSY, true, []);
+    renderAvailability(busy);
+  }
+
+  function renderAvailability(busy){
+    const panel = document.getElementById('panelAvail');
+    if (busy.length === 0){ panel.innerHTML = '<div class="empty-state">目前沒有任何已登記時段，所有時間皆可預約。</div>'; return; }
+    const byDate = {};
+    busy.forEach(b => { (byDate[b.date] = byDate[b.date] || []).push(b); });
+    const dates = Object.keys(byDate).sort();
+    let html = '<div class="note-box">下方僅顯示「不可預約」的時間範圍（已包含1小時緩衝），不會顯示是哪位房仲或備註內容。</div>';
+    dates.forEach(date => {
+      const blocked = mergeBlockedIntervals(byDate[date]);
+      html += renderTimelineBlock(date, blocked, []);
+    });
+    panel.innerHTML = html;
+  }
+
+  function mergeBlockedIntervals(daySlots){
+    const raw = daySlots.map(s => ({start: toMinutes(s.startTime)-BUFFER_MINUTES, end: toMinutes(s.endTime)+BUFFER_MINUTES}));
+    raw.sort((a,b)=>a.start-b.start);
+    const merged = [];
+    raw.forEach(iv => {
+      if (merged.length && iv.start <= merged[merged.length-1].end){
+        merged[merged.length-1].end = Math.max(merged[merged.length-1].end, iv.end);
+      } else merged.push({...iv});
+    });
+    return merged;
+  }
+
+  function minutesToClock(m){
+    m = Math.max(0, m);
+    const h = Math.floor(m/60), mm = m%60;
+    return String(h).padStart(2,'0') + ':' + String(mm).padStart(2,'0');
+  }
+
+  function renderTimelineBlock(date, blockedIntervals, fullSlotsForCount){
+    let dayStart = 7*60, dayEnd = 21*60;
+    blockedIntervals.forEach(iv => { dayStart = Math.min(dayStart, Math.floor(iv.start/60)*60); dayEnd = Math.max(dayEnd, Math.ceil(iv.end/60)*60); });
+    const range = dayEnd - dayStart;
+    let html = '<div class="date-group">';
+    html += '<div class="date-head"><span class="date-label">' + formatDateLabel(date) + '</span><span class="date-count">' + blockedIntervals.length + ' 個不可預約區段</span></div>';
+    html += '<div class="timeline"><div class="ruler-ticks">';
+    for (let m=dayStart; m<=dayEnd; m+=60){ html += '<span>' + String(Math.floor(m/60)).padStart(2,'0') + ':00</span>'; }
+    html += '</div><div class="timeline-row">';
+    blockedIntervals.forEach(iv => {
+      const left = ((iv.start - dayStart)/range)*100;
+      const width = Math.max(((iv.end - iv.start)/range)*100, 3);
+      html += '<div class="busy-bar" style="left:'+left+'%;width:'+width+'%;">不可預約 ' + minutesToClock(iv.start) + '–' + minutesToClock(iv.end) + '</div>';
+    });
+    html += '</div></div></div>';
+    return html;
+  }
+
+  // ===================================================================
+  // ADMIN SHELL
+  // ===================================================================
+  function adminShellHtml(){
+    return `
+      <div class="header">
+        <h1 class="header-title">看房時段協調表 · 管理者</h1>
+        <div class="identity-bar">
+          <span>身份：管理者</span>
+          <button id="switchIdBtn">切換身份</button>
+        </div>
+        <div class="header-stats" id="headerStats"></div>
+      </div>
+      <div class="tabs">
+        <button class="tab-btn" data-tab="overview">總覽管理</button>
+        <button class="tab-btn" data-tab="settings">通知設定</button>
+      </div>
+      <div class="panel" id="panelOverview"></div>
+      <div class="panel" id="panelSettings"></div>`;
+  }
+
+  function attachAdminHandlers(){
+    document.getElementById('switchIdBtn').onclick = switchIdentity;
+    document.querySelectorAll('.tab-btn').forEach(btn => { btn.onclick = () => setAdminTab(btn.getAttribute('data-tab')); });
+  }
+
+  function setAdminTab(tab){
+    activeTab = tab;
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.getAttribute('data-tab')===tab));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    if (tab==='overview'){ document.getElementById('panelOverview').classList.add('active'); loadAdminOverview(); }
+    if (tab==='settings'){ document.getElementById('panelSettings').classList.add('active'); loadAdminSettings(); }
+    if (pollHandle){ clearInterval(pollHandle); }
+    pollHandle = setInterval(() => { if (activeTab==='overview') loadAdminOverview(true); }, 20000);
+  }
+
+  async function fetchAllSlots(){
+    let keys = [];
+    try{
+      const res = await window.storage.list(KEY_SLOT_PREFIX, true);
+      keys = (res && res.keys) ? res.keys : [];
+    }catch(e){ keys = []; }
+    let all = [];
+    for (const k of keys){
+      const arr = await getJSON(k, true, []);
+      all = all.concat(arr);
+    }
+    return all;
+  }
+
+  function computeConflictPairs(list){
+    const pairs = [];
+    for (let i=0;i<list.length;i++){
+      for (let j=i+1;j<list.length;j++){
+        if (hasConflict(list[i].date,list[i].startTime,list[i].endTime,list[j].date,list[j].startTime,list[j].endTime)){
+          pairs.push([list[i], list[j]]);
+        }
+      }
+    }
+    return pairs;
+  }
+
+  async function loadAdminOverview(silent){
+    const panel = document.getElementById('panelOverview');
+    if (!silent) panel.innerHTML = '<div class="loading-state">載入中...</div>';
+    const all = await fetchAllSlots();
+    const pairs = computeConflictPairs(all);
+    renderHeaderStats(pairs);
+    renderAdminOverview(all, pairs);
+    maybeNotify(pairs);
+  }
+
+  function renderHeaderStats(pairs){
+    const el = document.getElementById('headerStats');
+    const conflictIds = new Set();
+    pairs.forEach(([a,b]) => { conflictIds.add(a.id); conflictIds.add(b.id); });
+    el.innerHTML = '<span class="stat-chip">即時統計</span><span class="stat-chip ' + (conflictIds.size>0?'warn':'ok') + '">' + conflictIds.size + ' 筆時間衝突</span>';
+  }
+
+  function stackRows(dateSlots){
+    const rows = [];
+    dateSlots.forEach(slot => {
+      let placed = false;
+      for (const row of rows){
+        const last = row[row.length-1];
+        if (toMinutes(slot.startTime) >= toMinutes(last.endTime)){ row.push(slot); placed=true; break; }
+      }
+      if (!placed) rows.push([slot]);
+    });
+    return rows;
+  }
+
+  function renderAdminOverview(all, pairs){
+    const panel = document.getElementById('panelOverview');
+    const conflictIds = new Set();
+    pairs.forEach(([a,b]) => { conflictIds.add(a.id); conflictIds.add(b.id); });
+
+    let headHtml = '<div class="overview-head"><button class="refresh-btn btn-outline btn btn-small" id="refreshOverviewBtn">重新整理</button>';
+    if (conflictIds.size > 0){
+      headHtml += '<button class="btn btn-small" id="shareConflictBtn" style="background:var(--conflict);">分享衝突訊息到 LINE</button>';
+    }
+    headHtml += '</div>';
+
+    if (all.length === 0){
+      panel.innerHTML = headHtml + '<div class="empty-state">尚無任何房仲登記看房時段。</div>';
+      attachAdminOverviewHandlers(all, pairs);
+      return;
+    }
+
+    const byDate = {};
+    all.forEach(s => { (byDate[s.date] = byDate[s.date] || []).push(s); });
+    const dates = Object.keys(byDate).sort();
+
+    let html = headHtml;
+    dates.forEach(date => {
+      const daySlots = byDate[date].slice().sort((a,b)=> toMinutes(a.startTime)-toMinutes(b.startTime));
+      let dayStart=7*60, dayEnd=21*60;
+      daySlots.forEach(s => { dayStart=Math.min(dayStart, Math.floor(toMinutes(s.startTime)/60)*60); dayEnd=Math.max(dayEnd, Math.ceil(toMinutes(s.endTime)/60)*60); });
+      const range = dayEnd-dayStart;
+      const rows = stackRows(daySlots);
+
+      html += '<div class="date-group"><div class="date-head"><span class="date-label">'+formatDateLabel(date)+'</span><span class="date-count">'+daySlots.length+' 筆</span></div>';
+      html += '<div class="timeline"><div class="ruler-ticks">';
+      for (let m=dayStart;m<=dayEnd;m+=60){ html += '<span>'+String(Math.floor(m/60)).padStart(2,'0')+':00</span>'; }
+      html += '</div>';
+      rows.forEach(row => {
+        html += '<div class="timeline-row">';
+        row.forEach(s => {
+          const left = ((toMinutes(s.startTime)-dayStart)/range)*100;
+          const width = Math.max(((toMinutes(s.endTime)-toMinutes(s.startTime))/range)*100, 3);
+          const color = agentColor(s.agentKey);
+          const cls = conflictIds.has(s.id) ? ' conflict' : '';
+          html += '<div class="slot-bar'+cls+'" style="left:'+left+'%;width:'+width+'%;background:'+color+';">'+escapeHtml(s.startTime+' '+s.agentName)+'</div>';
+        });
+        html += '</div>';
+      });
+      html += '</div>';
+
+      daySlots.forEach(s => {
+        const color = agentColor(s.agentKey);
+        const tag = conflictIds.has(s.id) ? '<span class="conflict-tag">⚠ 時間衝突</span>' : '';
+        html += '<div class="slot-item"><span class="slot-dot" style="background:'+color+';"></span><div class="slot-info">';
+        html += '<div class="slot-time">'+s.startTime+' – '+s.endTime+tag+'</div>';
+        html += '<div class="slot-agent">'+escapeHtml(s.agentName)+' · '+escapeHtml(s.agency)+'</div>';
+        if (s.note) html += '<div class="slot-note">備註：'+escapeHtml(s.note)+'</div>';
+        html += '</div><div class="slot-actions">';
+        if (deleteConfirmId === s.id){
+          html += '<div class="confirm-row"><span class="confirm-yes" data-adelconfirm-yes="'+s.id+'|'+s.agentKey+'">確定刪除</span><span class="confirm-no" data-adelconfirm-no="'+s.id+'">取消</span></div>';
+        } else {
+          html += '<button class="delete-btn" data-adelete="'+s.id+'">刪除</button>';
+        }
+        html += '</div></div>';
+      });
+      html += '</div>';
+    });
+
+    panel.innerHTML = html;
+    attachAdminOverviewHandlers(all, pairs);
+  }
+
+  function attachAdminOverviewHandlers(all, pairs){
+    const refreshBtn = document.getElementById('refreshOverviewBtn');
+    if (refreshBtn) refreshBtn.onclick = () => loadAdminOverview();
+    const shareBtn = document.getElementById('shareConflictBtn');
+    if (shareBtn) shareBtn.onclick = () => shareConflictMessage(pairs);
+
+    document.querySelectorAll('[data-adelete]').forEach(b => b.onclick = () => { deleteConfirmId = b.getAttribute('data-adelete'); renderAdminOverview(all, pairs); });
+    document.querySelectorAll('[data-adelconfirm-no]').forEach(b => b.onclick = () => { deleteConfirmId = null; renderAdminOverview(all, pairs); });
+    document.querySelectorAll('[data-adelconfirm-yes]').forEach(b => b.onclick = async () => {
+      const [id, agentKey] = b.getAttribute('data-adelconfirm-yes').split('|');
+      const slotKey = KEY_SLOT_PREFIX + agentKey;
+      const arr = (await getJSON(slotKey, true, [])).filter(s => s.id !== id);
+      await setJSON(slotKey, arr, true);
+      const busy = (await getJSON(KEY_BUSY, true, [])).filter(s => s.id !== id);
+      await setJSON(KEY_BUSY, busy, true);
+      deleteConfirmId = null;
+      showToast('已刪除該時段');
+      loadAdminOverview();
+    });
+  }
+
+  // ---------- notification ----------
+  function buildConflictMessage(pairs){
+    if (pairs.length === 0) return '';
+    let lines = ['⚠️ 看房時段衝突通知'];
+    const seen = new Set();
+    pairs.forEach(([a,b]) => {
+      const key = [a.id,b.id].sort().join('|');
+      if (seen.has(key)) return;
+      seen.add(key);
+      lines.push(formatDateLabel(a.date) + '：' + a.startTime+'-'+a.endTime+' ('+a.agentName+'/'+a.agency+') 與 ' + b.startTime+'-'+b.endTime+' ('+b.agentName+'/'+b.agency+') 時間太接近');
+    });
+    lines.push('請協助協調調整看房時間。');
+    return lines.join('\n');
+  }
+
+  async function shareConflictMessage(pairs){
+    const msg = buildConflictMessage(pairs);
+    if (!msg) return;
+    try{
+      if (navigator.share){
+        await navigator.share({ text: msg });
+        return;
+      }
+    }catch(e){ /* fall through to clipboard */ }
+    try{
+      await navigator.clipboard.writeText(msg);
+      showToast('已複製通知訊息，請貼到 LINE 群組');
+    }catch(e){
+      showToast('無法自動分享，請手動複製訊息', 'error');
+    }
+  }
+
+  async function maybeNotify(pairs){
+    if (pairs.length === 0) return;
+    const settings = await getJSON(KEY_SETTINGS, true, { webhookUrl:'', notifyEnabled:false });
+    if (!settings.notifyEnabled || !settings.webhookUrl) return;
+
+    const newPairs = pairs.filter(([a,b]) => !notifiedConflictKeys.has([a.id,b.id].sort().join('|')));
+    if (newPairs.length === 0) return;
+    newPairs.forEach(([a,b]) => notifiedConflictKeys.add([a.id,b.id].sort().join('|')));
+
+    const message = buildConflictMessage(newPairs);
+    try{
+      await fetch(settings.webhookUrl, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ type:'viewing_conflict', message })
+      });
+    }catch(e){
+      try{ await fetch(settings.webhookUrl, { method:'POST', mode:'no-cors', body: JSON.stringify({ type:'viewing_conflict', message }) }); }catch(e2){ /* ignore */ }
+    }
+  }
+
+  // ---------- settings tab ----------
+  async function loadAdminSettings(){
+    const panel = document.getElementById('panelSettings');
+    panel.innerHTML = '<div class="loading-state">載入中...</div>';
+    const settings = await getJSON(KEY_SETTINGS, true, { webhookUrl:'', notifyEnabled:false });
+    renderAdminSettings(settings);
+  }
+
+  function renderAdminSettings(settings){
+    const panel = document.getElementById('panelSettings');
+    panel.innerHTML = `
+      <div class="note-box">
+        <b>關於自動 LINE 通知：</b>LINE Notify 已於 2025 年 3 月停止服務，目前無法直接從這個網頁安全地呼叫 LINE 官方帳號 API（需要密鑰，不適合放在公開連結的程式碼裡）。建議作法：用 Make.com 或 Zapier 建立一個「Webhook → LINE Messaging API」的自動化流程（免費方案即可），把產生的 Webhook URL 貼到下方即可。設定好之後，系統偵測到衝突會自動送出通知；尚未設定前，可以用下方「分享衝突訊息到LINE」一鍵分享備援。
+      </div>
+      <div class="field"><label>Webhook URL（選填）</label><input type="text" id="webhookUrl" placeholder="https://hook.make.com/..." value="${escapeHtml(settings.webhookUrl||'')}"></div>
+      <div class="checkbox-row"><input type="checkbox" id="notifyEnabled" ${settings.notifyEnabled?'checked':''}><label for="notifyEnabled">偵測到時間衝突時自動發送通知</label></div>
+      <button class="btn" id="saveSettingsBtn">儲存設定</button>
+      <div style="height:10px;"></div>
+      <button class="btn btn-outline" id="testWebhookBtn">傳送測試訊息</button>`;
+    document.getElementById('saveSettingsBtn').onclick = async () => {
+      const newSettings = { webhookUrl: document.getElementById('webhookUrl').value.trim(), notifyEnabled: document.getElementById('notifyEnabled').checked };
+      await setJSON(KEY_SETTINGS, newSettings, true);
+      showToast('設定已儲存');
+    };
+    document.getElementById('testWebhookBtn').onclick = async () => {
+      const url = document.getElementById('webhookUrl').value.trim();
+      if (!url){ showToast('請先填寫 Webhook URL', 'error'); return; }
+      try{
+        await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ type:'test', message:'這是一則測試通知（看房時段協調表）' }) });
+        showToast('測試訊息已送出，請確認 LINE 是否收到');
+      }catch(e){
+        try{ await fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify({ type:'test', message:'這是一則測試通知' }) }); showToast('已嘗試送出（no-cors，請確認是否收到）'); }
+        catch(e2){ showToast('傳送失敗，請確認 URL 是否正確', 'error'); }
+      }
+    };
+  }
+
+  // ---------- init ----------
+  render();
+})();
+</script>
+</body>
+</html>
