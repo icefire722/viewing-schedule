@@ -162,16 +162,16 @@
     t._timer = setTimeout(()=>{ t.className='toast'; }, 2400);
   }
 
+  a// 修改後的單機版儲存函數（相容 GitHub Pages 與一般瀏覽器）
   async function getJSON(key, shared, fallback){
     try{
-      const res = await window.storage.get(key, shared);
-      return res && res.value ? JSON.parse(res.value) : fallback;
+      const res = localStorage.getItem(key);
+      return res ? JSON.parse(res) : fallback;
     }catch(e){ return fallback; }
   }
   async function setJSON(key, value, shared){
     try{
-      const result = await window.storage.set(key, JSON.stringify(value), shared);
-      if (!result){ showToast('儲存失敗，請重試', 'error'); return false; }
+      localStorage.setItem(key, JSON.stringify(value));
       return true;
     }catch(e){ showToast('儲存失敗，請重試', 'error'); return false; }
   }
